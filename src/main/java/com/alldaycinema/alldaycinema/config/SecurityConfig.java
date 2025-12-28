@@ -1,5 +1,6 @@
 package com.alldaycinema.alldaycinema.config;
 
+import com.alldaycinema.alldaycinema.security.AuthEntryPointJwt;
 import com.alldaycinema.alldaycinema.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,9 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Autowired
+    private AuthEntryPointJwt authEntryPointJwt;
+
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/auth/login",
             "/api/auth/signup",
@@ -39,6 +43,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
         http.csrf(csrf->csrf.disable())
                 .cors(cors->{})
+                .exceptionHandling(exception->exception
+                        .authenticationEntryPoint(authEntryPointJwt))
                 .authorizeHttpRequests(
                         auth->auth.requestMatchers(PUBLIC_ENDPOINTS)
                                 .permitAll().anyRequest().authenticated())
