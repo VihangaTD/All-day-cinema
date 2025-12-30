@@ -1,14 +1,12 @@
 package com.alldaycinema.alldaycinema.service.serviceImpl;
 
 import com.alldaycinema.alldaycinema.dto.request.UserRequest;
+import com.alldaycinema.alldaycinema.dto.response.EmailValidationResponse;
 import com.alldaycinema.alldaycinema.dto.response.LoginResponse;
 import com.alldaycinema.alldaycinema.dto.response.MessageResponse;
 import com.alldaycinema.alldaycinema.entity.User;
 import com.alldaycinema.alldaycinema.enums.Role;
-import com.alldaycinema.alldaycinema.exception.AccountDeactivatedException;
-import com.alldaycinema.alldaycinema.exception.BadCredentialsException;
-import com.alldaycinema.alldaycinema.exception.EmailAlreadyExistsException;
-import com.alldaycinema.alldaycinema.exception.EmailNotVerifiedException;
+import com.alldaycinema.alldaycinema.exception.*;
 import com.alldaycinema.alldaycinema.repo.UserRepository;
 import com.alldaycinema.alldaycinema.security.JwtUtil;
 import com.alldaycinema.alldaycinema.service.AuthService;
@@ -81,5 +79,90 @@ public class AuthServiceImpl implements AuthService {
         final String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
 
         return new LoginResponse(token,user.getEmail(), user.getFullName(),user.getRole().name() );
+    }
+
+    @Override
+    public EmailValidationResponse validateEmail(String email) {
+        boolean exists = userRepository.existsByEmail(email);
+        return new EmailValidationResponse(exists,!exists);
+    }
+
+    @Override
+    public MessageResponse verifyEmail(String token) {
+        User user =
+                userRepository
+                .findByVerificationToken(token)
+                .orElseThrow(()->new InvalidTokenException("Invalid or expired verification token"));
+
+        if (user.getVerificationTokenExpiry() == null
+                || user.getVerificationTokenExpiry().isBefore(Instant.now())){
+            throw new InvalidTokenException("Verification link has expired. Please request a new one");
+        }
+        user.setEmailVerified(true);
+        user.setVerificationToken(null);
+        user.setVerificationTokenExpiry(null);
+        userRepository.save(user);
+
+        return new MessageResponse("Email verified successfully! You can now login");
+    }
+
+    @Override
+    public MessageResponse resendVerification(String email) {
+        User user = serviceUtils.getUserByEmailOrThrow(email);
+
+        String verificationToken = UUID.randomUUID().toString();
+        user.setVerificationToken(verificationToken);
+        user.setVerificationTokenExpiry(Instant.now().plusSeconds(86400));
+        userRepository.save(user);
+        emailService.sendVerificationEmail(email,verificationToken);
+
+        return new MessageResponse("Verification email resent successfully! Please check your inbox");
+    }
+
+    @Override
+    public MessageResponse forgotPassword(String email) {
+        User user = serviceUtils.getUserByEmailOrThrow(email);
+        String resetToken = UUID.randomUUID().toString();
+        user.setPasswordResetToken(resetToken);
+        user.setPasswordResetTokenExpiry(Instant.now().plusSeconds(3600));
+        userRepository.save(user);
+        emailService.sendPasswordResetEmail(email,resetToken);
+
+        return new MessageResponse("Password reset email sent successfully! Please check your inbox");
+    }
+
+    @Override
+    public MessageResponse resetPassword(String token, String newPassword) {
+        User user = userRepository
+                .findByPasswordResetToken(token)
+                .orElseThrow(()->new InvalidTokenException("Invalid or expired token"));
+
+        if (user.getPasswordResetTokenExpiry() == null || user.getPasswordResetTokenExpiry().isBefore(Instant.now())){
+            throw new InvalidTokenException("Reset token has expired");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiry(null);
+        userRepository.save(user);
+
+        return new MessageResponse("Password reset successfully! You can now login with new password");
+    }
+
+    @Override
+    public MessageResponse changePassword(String email, String currentPassword, String newPassword) {
+        User user = serviceUtils.getUserByEmailOrThrow(email);
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())){
+            throw new InvalidCredentialsException("Current password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        return new MessageResponse("Password changed successfully");
+    }
+
+    @Override
+    public LoginResponse currentUser(String email) {
+        User user = serviceUtils.getUserByEmailOrThrow(email);
+        return new LoginResponse(null, user.getEmail(), user.getFullName(),user.getRole().name());
     }
 }

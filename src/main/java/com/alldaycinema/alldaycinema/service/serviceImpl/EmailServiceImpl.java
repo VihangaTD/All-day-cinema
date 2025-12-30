@@ -68,6 +68,7 @@ public class EmailServiceImpl implements EmailService {
                     "Hi,\n\n"
                     + "We received a request to reset your password. Click the link below to reset it:\n\n"
                     + resetLink
+                            + "\n\n"
                     + "This link will expire in 1 hour.\n\n"
                     + "If you didn't request a password reset, please ignore this email.\n\n"
                     + "Best regards"
