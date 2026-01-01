@@ -57,13 +57,13 @@ public class FileHandlerUtil {
     }
 
     //bytes=0-1023
-    public static Long[] parseRangeHeader(String rangeHeader,long fileLength){
+    public static long[] parseRangeHeader(String rangeHeader,long fileLength){
         String[] ranges = rangeHeader.replace("bytes=","").split("-");
         long rangeStart = Long.parseLong(ranges[0]);
         long rangeEnd = ranges.length > 1 &&
                 !ranges[1].isEmpty() ? Long.parseLong(ranges[1]) : fileLength-1;
 
-        return new Long[]{rangeStart,rangeEnd};
+        return new long[]{rangeStart,rangeEnd};
     }
 
     public static Resource createRangeResource(Path filePath, long rangeStart, long rangeLength)throws IOException {
