@@ -2,6 +2,7 @@ package com.alldaycinema.alldaycinema.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,11 +18,12 @@ public class JwtUtil {
 
     private static final long JWT_TOKEN_VALIDITY = 30L * 24 * 60 * 60 * 1000;
 
-    @Value("${jwt.secret:defaultSecretKeyForAllDayCinemadefaultSecretKeyForAllDayCinema}")
+    @Value("${jwt.secret}")
     private String secret;
 
     private SecretKey getSigningKey(){
-        return Keys.hmacShaKeyFor(secret.getBytes());
+//        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
     public String getUsernameFromToken(String token){
@@ -58,11 +60,12 @@ public class JwtUtil {
 
     private String doGenerateToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
+                .header().type("JWT").and()
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + JWT_TOKEN_VALIDITY))
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 
