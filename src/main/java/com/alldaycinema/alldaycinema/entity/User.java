@@ -70,13 +70,13 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "video_id")
     )
-    private Set<Video> watchList = new HashSet<>();
+    private Set<Video> watchlist = new HashSet<>();
 
     public void addToWatchList(Video video){
-        this.watchList.add(video);
+        this.watchlist.add(video);
     }
 
     public void removeFronWatchList(Video video){
-        this.watchList.remove(video);
+        this.watchlist.remove(video);
     }
 }
