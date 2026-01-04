@@ -1,6 +1,7 @@
 package com.alldaycinema.alldaycinema.repo;
 
 import com.alldaycinema.alldaycinema.entity.User;
+import com.alldaycinema.alldaycinema.entity.Video;
 import com.alldaycinema.alldaycinema.enums.Role;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,4 +32,13 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     @Query("SELECT u FROM User u JOIN u.watchlist v WHERE u.email = :email AND v.id IN :videoIds")
     Set<Long> findWatchlistVideoIds(@Param("email") String email,@Param("videoIds") List<Long> videoIds);
+
+    @Query("SELECT v FROM User u JOIN u.watchlist v WHERE " +
+            "u.id = :userId AND v.published = true AND " +
+            "(LOWER(v.title) LIKE LOWER(CONCAT('%',:search,'%')) OR " +
+            "LOWER(v.description) LIKE LOWER(CONCAT('%',:search,'%')))")
+    Page<Video> searchWatchlistByUserId(Long userId, String search, Pageable pageable);
+
+    @Query("SELECT v FROM User u JOIN u.watchlist v WHERE u.id = :userId AND v.published = true")
+    Page<Video> findWatchlistByUserId(Long userId, Pageable pageable);
 }
